@@ -1,11 +1,10 @@
-﻿# Credit Scoring – Risk Tahmin (GiveMeSomeCredit)
+# Credit Scoring – Risk Tahmin (GiveMeSomeCredit)
 
 Basit bir **kredi skorlama** pipeline’ı: veri temizleme → özellik üretimi (FE) → `XGBoost` modeli → **operasyon politikası** (Top-K veya maliyet-tabanlı eşik) → **Streamlit** demo.
 
 ## Sonuçlar (TEST)
 - **ROC-AUC:** 0.869  
 - **PR-AUC (AP):** 0.406 (prevalans ≈ 0.067)
-- **Top-K metrikleri:**
 
 | K   | TopK-Recall | Precision@K |
 |-----|-------------|-------------|
@@ -16,9 +15,8 @@ Basit bir **kredi skorlama** pipeline’ı: veri temizleme → özellik üretimi
 - **Maliyet-tabanlı eşik (VAL, FP=1 / FN=5):** `t ≈ 0.70` → TEST’te Recall ≈ 0.593 / Precision ≈ 0.347  
 - **Seçilen politika:** **Top-K = %10** (VAL 90. yüzdelikten eşik ≈ **0.749**) → `models/policy.json`
 
-ROC & PR grafikleri: `reports/roc_test.png`, `reports/pr_test.png`
-
 ## Proje yapısı
+
 
 ├─ app/streamlit_app.py # FE+Pre+Model pipeline'ı kullanan demo
 ├─ src/ # veri/fe/train utils
@@ -37,7 +35,7 @@ ROC & PR grafikleri: `reports/roc_test.png`, `reports/pr_test.png`
 pip install -r requirements.txt
 python -m src.train --model xgb          # eğit, modeli kaydet
 python -m streamlit run app/streamlit_app.py
-
+```
 
 
 Model
@@ -46,7 +44,7 @@ FE: gecikme toplamı/bayrakları, debtratio & util winsorize + log1p, gelir-eksi
 
 Önişleme: sayısal median impute (+scale), kategorik most-freq impute + OHE
 
-Model: XGBoost (dengesizlik için scale_pos_weight), AP (aucpr) ile erken durdurma
+Model: XGBoost (dengesizlik için scale_pos_weight), AP (aucpr) ile early stopping
 
 Skor → Karar: Top-K kapasite veya maliyet-tabanlı eşik (VAL’dan seçilir)
 
