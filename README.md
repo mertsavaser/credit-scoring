@@ -1,61 +1,74 @@
-﻿# Credit Scoring – Risk Tahmin Projesi
+﻿# Credit Scoring – Risk Tahmin (GiveMeSomeCredit)
 
-**Amaç:** Kredi başvurularında default riskini tahmin eden bir model ve mini demo app.
+Basit bir **kredi skorlama** pipeline’ı: veri temizleme → özellik üretimi (FE) → `XGBoost` modeli → **operasyon politikası** (Top-K veya maliyet-tabanlı eşik) → **Streamlit** demo.
 
-## Hızlı Başlangıç
-1) Sanal ortam ve kurulum:
-   \\\ash
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   pip install --upgrade pip
-   pip install -r requirements.txt
-   \\\
+## Sonuçlar (TEST)
+- **ROC-AUC:** 0.869  
+- **PR-AUC (AP):** 0.406 (prevalans ≈ 0.067)
+- **Top-K metrikleri:**
 
-2) Veri:
-   - Kaggle'dan uygun kredi risk setini indir (örn. *Give Me Some Credit*).
-   - Ana CSV dosyasını **data/raw/credit.csv** olarak kaydet.
+| K   | TopK-Recall | Precision@K |
+|-----|-------------|-------------|
+| 5%  | 0.373       | 0.498       |
+| 10% | 0.560       | 0.374       |
+| 20% | 0.735       | 0.246       |
 
-3) Eğitim:
-   \\\ash
-   python src/train.py
-   \\\
+- **Maliyet-tabanlı eşik (VAL, FP=1 / FN=5):** `t ≈ 0.70` → TEST’te Recall ≈ 0.593 / Precision ≈ 0.347  
+- **Seçilen politika:** **Top-K = %10** (VAL 90. yüzdelikten eşik ≈ **0.749**) → `models/policy.json`
 
-4) Değerlendirme:
-   \\\ash
-   python src/evaluate.py
-   \\\
+ROC & PR grafikleri: `reports/roc_test.png`, `reports/pr_test.png`
 
-5) Demo (Streamlit):
-   \\\ash
-   streamlit run app/streamlit_app.py
-   \\\
+## Proje yapısı
 
-## Klasör Yapısı
-\\\
-credit-scoring/
-├─ data/
-│  ├─ raw/                # orijinal csv (credit.csv)
-│  ├─ interim/            # temizlenmiş
-│  └─ processed/          # feature engineered
-├─ notebooks/             # EDA/modelleme defterleri
-├─ src/
-│  ├─ data_prep.py
-│  ├─ features.py
-│  ├─ train.py
-│  ├─ evaluate.py
-│  ├─ explain.py
-│  └─ utils.py
-├─ app/
-│  ├─ streamlit_app.py
-│  └─ Dockerfile
+├─ app/streamlit_app.py # FE+Pre+Model pipeline'ı kullanan demo
+├─ src/ # veri/fe/train utils
 ├─ models/
-│  ├─ best_model.pkl
-│  └─ preprocessor.pkl
-├─ requirements.txt
-├─ .gitignore
-└─ README.md
-\\\
+│ ├─ best_model.pkl # joblib pipeline (FE+Pre+Model)
+│ ├─ preprocessor.pkl
+│ ├─ feature_names.json
+│ └─ policy.json # {"type":"topk","K":0.10,"threshold":0.7487}
+├─ notebooks/ # 01_eda, 02_feature_engineering, 03_modeling
+├─ data/raw/credit.csv
+└─ reports/roc_test.png, pr_test.png, metrics.json
 
-## Notlar
-- Dengesiz sınıf yönetimi (class_weight, SMOTE) ve eşik ayarı ilerleyen commit'lerde.
-- SHAP ile açıklanabilirlik örneği explain.py içinde.
+
+## Kurulum
+```bash
+pip install -r requirements.txt
+python -m src.train --model xgb          # eğit, modeli kaydet
+python -m streamlit run app/streamlit_app.py
+
+
+
+Model
+
+FE: gecikme toplamı/bayrakları, debtratio & util winsorize + log1p, gelir-eksik bayrağı, yaş bandı
+
+Önişleme: sayısal median impute (+scale), kategorik most-freq impute + OHE
+
+Model: XGBoost (dengesizlik için scale_pos_weight), AP (aucpr) ile erken durdurma
+
+Skor → Karar: Top-K kapasite veya maliyet-tabanlı eşik (VAL’dan seçilir)
+
+Neden PR-AUC ve Top-K?
+
+Dengesiz veride ROC-AUC iyimser olabilir; PR-AUC pozitif sınıfı odakta değerlendirir. Operasyonel olarak günlük inceleme kapasitesi K% ise Top-K politikası doğrudan iş yüküyle hizalıdır.
+
+Açıklanabilirlik
+
+python src/explain.py   # SHAP local/global grafiklerini üretir (reports/ içine)
+
+
+Görseller
+
+ROC ve PR eğrileri
+
+<p align="center"> <img src="reports/roc_test.png" alt="ROC Test" width="45%"/> <img src="reports/pr_test.png" alt="PR Test" width="45%"/> </p>
+
+Top-K ve Eşik Tarama
+
+<p align="center"> <img src="reports/topk_test.png" alt="Top-K Test" width="45%"/> <img src="reports/threshold_sweep_val.png" alt="Threshold Sweep VAL" width="45%"/> </p>
+
+Confusion Matrix (TEST @ t≈0.70)
+
+<p align="center"> <img src="reports/cm_test.png" alt="Confusion Matrix Test" width="45%"/> </p> ```
