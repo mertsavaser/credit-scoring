@@ -1,0 +1,18 @@
+﻿# Core
+numpy==1.26.4
+pandas>=2.0.0,<3.0.0
+scikit-learn>=1.3.0,<1.6.0
+imbalanced-learn>=0.11.0,<0.13.0
+joblib>=1.3.0,<2.0.0
+
+# Models (ağaç tabanlılar)
+xgboost>=1.7.6,<2.0.0
+lightgbm>=4.0.0,<5.0.0
+
+# Viz & Explainability
+matplotlib>=3.7.0,<3.10.0
+seaborn>=0.12.2,<0.14.0
+shap>=0.43.0,<0.47.0
+
+# App
+streamlit>=1.33.0,<1.40.0
